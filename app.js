@@ -1,5 +1,6 @@
 import express, { json, urlencoded } from "express";
 import routes from './routes.js';
+import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -24,12 +25,38 @@ var regex = new RegExp(localSiteStrings.join("|"), "i");
 let ourDomainPage = 'https://onedinaar.com/'
 let   dbRoutes = undefined;
 
-
+const PORT = process.env.PORT || 5115;
 
 
 const app = express();
 app.use(json());
 app.use(urlencoded({ extended: true }));
+
+// Enable CORS for all routes
+const corsOrigins = process.env.CORS_ORIGINS ? 
+  process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : 
+  [];
+
+const corsMethods = process.env.CORS_METHODS ? 
+  process.env.CORS_METHODS.split(',').map(method => method.trim()) : 
+  ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
+
+const corsHeaders = process.env.CORS_HEADERS ? 
+  process.env.CORS_HEADERS.split(',').map(header => header.trim()) : 
+  ['Content-Type', 'Authorization'];
+
+app.use(cors({
+  origin: [
+    ...corsOrigins,
+    /^http:\/\/localhost:\d+$/,  // Allow any localhost port
+    /^http:\/\/127\.0\.0\.1:\d+$/ // Allow any 127.0.0.1 port
+  ],
+  methods: corsMethods,
+  allowedHeaders: corsHeaders,
+  credentials: process.env.CORS_CREDENTIALS !== 'true'
+}));
+
+
  //let routes = routes1(app);
  
    let mongooseDB =  await connectMongo();
@@ -61,9 +88,23 @@ app.use(urlencoded({ extended: true }));
  
 //app.use("/api",routes )
  //process.env.PORT
-app.listen(5115, () => {
-  console.log("listening on port " + 5115);//process.env.PORT
+//app.listen(PORT, () => {
+//  console.log("listening on port " + PORT);//process.env.PORT
+//});
+
+const server = app.listen(PORT, () => {
+  console.log(`Server running on ${PORT}`);
+   // Log CORS configuration
+        if (corsOrigins.length > 0) {
+            console.log(`CORS Origins: ${corsOrigins.join(', ')}`);
+        }
+        console.log(`CORS Methods: ${corsMethods.join(', ')}`);
+        console.log(`CORS Headers: ${corsHeaders.join(', ')}`);
+        console.log(`CORS Credentials: ${process.env.CORS_CREDENTIALS !== undefined ? process.env.CORS_CREDENTIALS : false}`);
+
+
 });
+
 
 app.get("/", async (req, res) => {
   // const result=await sendMail();
